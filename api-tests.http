@@ -1,0 +1,86 @@
+### Health Check
+GET http://localhost:3000/health
+
+### Create a new order
+POST http://localhost:3000/api/orders
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "name": "Cappuccino",
+      "price": 4.50,
+      "quantity": 2
+    },
+    {
+      "name": "Chocolate Croissant",
+      "price": 3.25,
+      "quantity": 1
+    }
+  ]
+}
+
+### Get all orders
+GET http://localhost:3000/api/orders
+
+### Get specific order (replace ORDER_ID with actual ID)
+GET http://localhost:3000/api/orders/ORDER_ID
+
+### Update order status
+PUT http://localhost:3000/api/orders/ORDER_ID/status
+Content-Type: application/json
+
+{
+  "status": "completed"
+}
+
+### Get order statistics
+GET http://localhost:3000/api/orders/stats
+
+### Test 404 endpoint
+GET http://localhost:3000/nonexistent-endpoint
+
+### Test with environment variables
+GET {{baseUrl}}/health
+
+### Advanced POST with tests
+POST http://localhost:3000/api/orders
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "name": "Latte",
+      "price": 5.00,
+      "quantity": 1
+    }
+  ]
+}
+
+> {%
+    client.test("Order created successfully", function() {
+        client.assert(response.status === 201, "Response status is not 201");
+        client.assert(response.body.success === true, "Success should be true");
+        client.assert(response.body.orderId, "Order ID should be present");
+    });
+
+    client.test("Response contains required fields", function() {
+        client.assert(response.body.hasOwnProperty("orderId"), "Missing orderId field");
+        client.assert(response.body.hasOwnProperty("timestamp"), "Missing timestamp field");
+        client.assert(response.body.hasOwnProperty("message"), "Missing message field");
+    });
+
+    // Store orderId for use in subsequent requests
+    client.global.set("orderId", response.body.orderId);
+%}
+
+### Use stored orderId from previous request
+GET http://localhost:3000/api/orders/{{orderId}}
+
+> {%
+    client.test("Order retrieved successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.success === true, "Success should be true");
+        client.assert(response.body.order, "Order should be present");
+    });
+%}

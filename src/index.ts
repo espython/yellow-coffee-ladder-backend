@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { database } from './database/db';
+import {database} from './database/db';
 import orderRoutes from './routes/orders';
 
 // Load environment variables
@@ -26,8 +26,8 @@ async function startServer() {
             credentials: true
         }));
 
-        app.use(express.json({ limit: '10mb' }));
-        app.use(express.urlencoded({ extended: true }));
+        app.use(express.json({limit: '10mb'}));
+        app.use(express.urlencoded({extended: true}));
 
         // Request logging middleware
         app.use((req, res, next) => {
@@ -64,7 +64,7 @@ async function startServer() {
         app.use('/api/orders', orderRoutes);
 
         // 404 handler
-        app.use('*', (req, res) => {
+        app.use((_, res) => {
             res.status(404).json({
                 success: false,
                 message: 'Endpoint not found'

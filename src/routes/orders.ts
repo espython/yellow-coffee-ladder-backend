@@ -170,7 +170,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
 });
 
 // PUT /orders/:id/status - Update order status
-router.put('/:id/status', async (req: Request, res: Response): Promise<void> => {
+router.patch('/:id/status', async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
         const { status } = req.body;

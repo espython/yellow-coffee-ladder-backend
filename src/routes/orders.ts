@@ -61,17 +61,77 @@ router.post('/', validateOrderRequest, async (
     }
 });
 
-// GET /orders - Get all orders (for admin portal)
+// GET /orders - Get all orders (for admin portal) with optional filters
 router.get('/', async (req: Request, res: Response): Promise<void> => {
     try {
-        const orders = await orderStorage.getAllOrders();
+        const { status, search, dateRange } = req.query;
+        let orders = await orderStorage.getAllOrders();
+        
+        // Filter by status if provided
+        if (status && typeof status === 'string') {
+            if (!['pending', 'completed', 'cancelled'].includes(status)) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Invalid status parameter. Use: pending, completed, or cancelled'
+                });
+                return;
+            }
+            orders = orders.filter(order => order.status === status);
+        }
+        
+        // Filter by search term (product name)
+        if (search && typeof search === 'string') {
+            const searchTerm = search.toLowerCase();
+            orders = orders.filter(order => 
+                order.items.some(item => 
+                    item.name.toLowerCase().includes(searchTerm)
+                )
+            );
+        }
+        
+        // Filter by date range
+        if (dateRange && typeof dateRange === 'string') {
+            const now = new Date();
+            let startDate: Date;
+            
+            switch (dateRange) {
+                case 'today':
+                    startDate = new Date(now.setHours(0, 0, 0, 0));
+                    break;
+                case 'week':
+                    startDate = new Date(now);
+                    startDate.setDate(now.getDate() - 7);
+                    break;
+                case 'month':
+                    startDate = new Date(now);
+                    startDate.setMonth(now.getMonth() - 1);
+                    break;
+                case 'year':
+                    startDate = new Date(now);
+                    startDate.setFullYear(now.getFullYear() - 1);
+                    break;
+                default:
+                    res.status(400).json({
+                        success: false,
+                        message: 'Invalid dateRange parameter. Use: today, week, month, or year'
+                    });
+                    return;
+            }
+            
+            orders = orders.filter(order => {
+                const orderDate = new Date(order.timestamp);
+                return orderDate >= startDate && orderDate <= now;
+            });
+        }
+
         const stats = await orderStorage.getStats();
 
         res.json({
             success: true,
             orders,
             count: orders.length,
-            stats
+            stats,
+            filters: { status, search, dateRange } // Return applied filters for reference
         });
     } catch (error) {
         console.error('❌ Error fetching orders:', error);

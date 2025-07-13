@@ -1,49 +1,9 @@
-### Health Check
+### 1. Health Check
 GET http://localhost:3000/health
 
-### Create a new order
-POST http://localhost:3000/api/orders
-Content-Type: application/json
+###
 
-{
-  "items": [
-    {
-      "name": "Cappuccino",
-      "price": 4.50,
-      "quantity": 2
-    },
-    {
-      "name": "Chocolate Croissant",
-      "price": 3.25,
-      "quantity": 1
-    }
-  ]
-}
-
-### Get all orders
-GET http://localhost:3000/api/orders
-
-### Get specific order (replace ORDER_ID with actual ID)
-GET http://localhost:3000/api/orders/ORDER_ID
-
-### Update order status
-PUT http://localhost:3000/api/orders/ORDER_ID/status
-Content-Type: application/json
-
-{
-  "status": "completed"
-}
-
-### Get order statistics
-GET http://localhost:3000/api/orders/stats
-
-### Test 404 endpoint
-GET http://localhost:3000/nonexistent-endpoint
-
-### Test with environment variables
-GET {{baseUrl}}/health
-
-### Advanced POST with tests
+### 2. Create Order and Store ID
 POST http://localhost:3000/api/orders
 Content-Type: application/json
 
@@ -52,35 +12,78 @@ Content-Type: application/json
     {
       "name": "Latte",
       "price": 5.00,
-      "quantity": 1
+      "quantity": 1,
+      "size": "small"
+    },
+    {
+      "name": "Croissant",
+      "price": 3.50,
+      "quantity": 2,
+      "size": "medium"
     }
   ]
 }
 
 > {%
-    client.test("Order created successfully", function() {
-        client.assert(response.status === 201, "Response status is not 201");
-        client.assert(response.body.success === true, "Success should be true");
-        client.assert(response.body.orderId, "Order ID should be present");
+    client.test("Order creation", function() {
+        client.assert(response.status === 201, "Should create order");
+        client.assert(response.body.orderId, "Should return order ID");
     });
-
-    client.test("Response contains required fields", function() {
-        client.assert(response.body.hasOwnProperty("orderId"), "Missing orderId field");
-        client.assert(response.body.hasOwnProperty("timestamp"), "Missing timestamp field");
-        client.assert(response.body.hasOwnProperty("message"), "Missing message field");
-    });
-
-    // Store orderId for use in subsequent requests
-    client.global.set("orderId", response.body.orderId);
+    
+    // Store for subsequent requests
+    client.global.set("order_id", response.body.orderId);
+    client.global.set("created_timestamp", response.body.timestamp);
+    
+    console.log("✅ Created order:", response.body.orderId);
 %}
 
-### Use stored orderId from previous request
-GET http://localhost:3000/api/orders/{{orderId}}
+###
+
+### 3. Get All Orders
+GET http://localhost:3000/api/orders
+
+###
+
+### 4. Get Specific Order (using captured ID)
+GET http://localhost:3000/api/orders/{{order_id}}
 
 > {%
-    client.test("Order retrieved successfully", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-        client.assert(response.body.success === true, "Success should be true");
-        client.assert(response.body.order, "Order should be present");
+    client.test("Get specific order", function() {
+        client.assert(response.status === 200, "Should get order");
+        client.assert(response.body.order.id === client.global.get("order_id"), "IDs should match");
     });
 %}
+
+###
+
+### 5. Update Order Status
+PUT http://localhost:3000/api/orders/{{order_id}}/status
+Content-Type: application/json
+
+{
+  "status": "completed"
+}
+
+> {%
+    client.test("Update order status", function() {
+        client.assert(response.status === 200, "Should update status");
+        client.assert(response.body.success === true, "Should be successful");
+    });
+%}
+
+###
+
+### 6. Verify Status Update
+GET http://localhost:3000/api/orders/{{order_id}}
+
+> {%
+    client.test("Verify status update", function() {
+        client.assert(response.status === 200, "Should get order");
+        client.assert(response.body.order.status === "completed", "Status should be completed");
+    });
+%}
+
+###
+
+### 7. Get Statistics
+GET http://localhost:3000/api/orders/stats

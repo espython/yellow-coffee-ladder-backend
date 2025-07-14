@@ -92,6 +92,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
         // Filter by date range
         if (dateRange && typeof dateRange === 'string') {
             const now = new Date();
+            console.log('now', now)
             let startDate: Date;
             
             switch (dateRange) {
@@ -120,6 +121,8 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
             
             orders = orders.filter(order => {
                 const orderDate = new Date(order.timestamp);
+                const now = new Date();
+                console.log('orderDate', orderDate, 'startDate', startDate, 'now', now);
                 return orderDate >= startDate && orderDate <= now;
             });
         }
